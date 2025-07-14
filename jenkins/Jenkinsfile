@@ -1,0 +1,92 @@
+pipeline {
+    agent any
+    
+    environment {
+        AWS_REGION = 'us-east-1'
+        APP_NAME = 'simple-js-app'
+        KEY_NAME = 'your-aws-key-pair'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Test Local Deployment') {
+            steps {
+                script {
+                    sh '''
+                        echo "Testing local deployment..."
+                        ansible-playbook -i ansible/inventory/local.ini ansible/playbooks/deploy-local.yml
+                        
+                        # Wait for app to start
+                        sleep 30
+                        
+                        # Test health endpoint
+                        curl -f http://127.0.0.1:3000/health || exit 1
+                        
+                        echo "Local deployment test passed!"
+                    '''
+                }
+            }
+        }
+        
+        stage('Provision AWS Infrastructure') {
+            steps {
+                script {
+                    sh '''
+                        cd terraform
+                        terraform init
+                        terraform plan -var="key_name=${KEY_NAME}" -var="vpc_id=vpc-093b4936460363948" -var="subnet_id=subnet-0a0b66fbf7c4b66c0" -out=tfplan
+                        terraform apply tfplan
+                        
+                        # Get instance IP and update inventory
+                        INSTANCE_IP=$(terraform output -raw instance_public_ip)
+                        echo "${INSTANCE_IP} ansible_user=ec2-user" > ../ansible/inventory/aws.ini
+                        echo "[aws]" > ../ansible/inventory/aws.ini
+                        echo "${INSTANCE_IP} ansible_user=ec2-user" >> ../ansible/inventory/aws.ini
+                    '''
+                }
+            }
+        }
+        
+        stage('Deploy to AWS') {
+            steps {
+                script {
+                    sh '''
+                        # Wait for instance to be ready
+                        sleep 60
+                        
+                        # Deploy to AWS
+                        ansible-playbook -i ansible/inventory/aws.ini ansible/playbooks/deploy-aws.yml
+                        
+                        # Get instance IP for testing
+                        cd terraform
+                        INSTANCE_IP=$(terraform output -raw instance_public_ip)
+                        
+                        # Test deployment
+                        sleep 30
+                        curl -f http://${INSTANCE_IP}:3000/health || exit 1
+                        
+                        echo "AWS deployment successful!"
+                        echo "App is accessible at: http://${INSTANCE_IP}:3000"
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Pipeline completed!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+        success {
+            echo 'Pipeline succeeded!'
+        }
+    }
+}
