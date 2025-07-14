@@ -1,0 +1,37 @@
+---
+- name: Deploy JS App Locally
+  hosts: local
+  become: yes
+  vars:
+    app_name: simple-js-app
+    app_port: 3000
+  
+  tasks:
+    - name: Build Docker image
+      docker_image:
+        name: "{{ app_name }}"
+        build:
+          path: "{{ playbook_dir }}/../../"
+          dockerfile: Dockerfile
+        state: present
+        source: build
+
+    - name: Stop existing container
+      docker_container:
+        name: "{{ app_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Run Docker container
+      docker_container:
+        name: "{{ app_name }}"
+        image: "{{ app_name }}"
+        state: started
+        restart_policy: always
+        ports:
+          - "{{ app_port }}:3000"
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
+          interval: 30s
+          timeout: 10s
+          retries: 3

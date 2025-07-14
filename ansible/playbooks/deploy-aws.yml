@@ -1,0 +1,49 @@
+---
+- name: Deploy JS App to AWS
+  hosts: aws
+  become: yes
+  remote_user: ec2-user
+  vars:
+    app_name: simple-js-app
+    app_port: 3000
+  
+  tasks:
+    - name: Copy application files
+      copy:
+        src: "{{ playbook_dir }}/../../app/"
+        dest: "/home/ec2-user/{{ app_name }}/"
+        owner: ec2-user
+        group: ec2-user
+        mode: '0755'
+
+    - name: Copy Dockerfile
+      copy:
+        src: "{{ playbook_dir }}/../../Dockerfile"
+        dest: "/home/ec2-user/Dockerfile"
+        owner: ec2-user
+        group: ec2-user
+        mode: '0644'
+
+    - name: Build Docker image
+      docker_image:
+        name: "{{ app_name }}"
+        build:
+          path: "/home/ec2-user"
+          dockerfile: Dockerfile
+        state: present
+        source: build
+
+    - name: Stop existing container
+      docker_container:
+        name: "{{ app_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Run Docker container
+      docker_container:
+        name: "{{ app_name }}"
+        image: "{{ app_name }}"
+        state: started
+        restart_policy: always
+        ports:
+          - "{{ app_port }}:3000"
