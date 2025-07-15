@@ -88,7 +88,9 @@
         delete: no
         rsync_opts:
           - "--exclude=node_modules"
-        # REMOVED: ssh_args: "-i /home/mali/Desktop/DevOpsLearning/DevOps.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+        # The key is copied to ansible/DevOps.pem in the Jenkins workspace root.
+        # playbook_dir is ansible/playbooks. So, relative path is ../../ansible/DevOps.pem
+        ssh_args: "-i {{ playbook_dir }}/../../ansible/DevOps.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       delegate_to: localhost
       become: false # This task should run as the user running Ansible (jenkins user), not root
 
