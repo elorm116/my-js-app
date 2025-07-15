@@ -1,7 +1,7 @@
 ---
 - name: Deploy JS App to AWS
   hosts: aws
-  become: true # This ensures tasks requiring root privileges can run
+  become: true
   remote_user: ubuntu
 
   vars:
@@ -11,7 +11,7 @@
     app_dir: "/home/{{ app_user }}/{{ app_name }}"
 
   tasks:
-    # 🐳 Comprehensive Docker Installation (Re-added for robustness)
+    # 🐳 Comprehensive Docker Installation
     - name: Update apt cache and install necessary packages for Docker
       ansible.builtin.apt:
         update_cache: yes
@@ -21,7 +21,7 @@
           - gnupg
           - lsb-release
         state: present
-        cache_valid_time: 3600 # Update cache if it's older than 1 hour
+        cache_valid_time: 3600
 
     - name: Create Docker GPG directory
       ansible.builtin.file:
@@ -32,7 +32,7 @@
     - name: Add Docker GPG apt key
       ansible.builtin.shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
       args:
-        creates: /etc/apt/keyrings/docker.gpg # Only run if the key doesn't exist
+        creates: /etc/apt/keyrings/docker.gpg
 
     - name: Add Docker apt repository
       ansible.builtin.apt_repository:
@@ -49,7 +49,7 @@
           - docker-buildx-plugin
           - docker-compose-plugin
         state: present
-        update_cache: yes # Update cache again after adding Docker repo
+        update_cache: yes
 
     - name: Ensure Docker service is running and enabled
       ansible.builtin.service:
@@ -81,30 +81,28 @@
         mode: '0755'
 
     - name: Sync application files (excluding node_modules)
-      ansible.posix.synchronize: # Use fully qualified collection name for synchronize
+      ansible.posix.synchronize:
         src: "{{ playbook_dir }}/../../app/"
-        dest: "{{ app_dir }}/" # Use app_dir variable for consistency
+        dest: "{{ app_dir }}/"
         recursive: yes
         delete: no
         rsync_opts:
           - "--exclude=node_modules"
-        # The key is copied to ansible/DevOps.pem in the Jenkins workspace root.
-        # playbook_dir is ansible/playbooks. So, relative path is ../../ansible/DevOps.pem
         ssh_args: "-i {{ playbook_dir }}/../../ansible/DevOps.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       delegate_to: localhost
-      become: false # This task should run as the user running Ansible (jenkins user), not root
+      become: false
 
     - name: Copy Dockerfile
-      ansible.builtin.copy: # Use fully qualified collection name for copy
-        src: "{{ playbook_dir }}/../../Dockerfile"
+      ansible.builtin.copy:
+        src: "Dockerfile" # Corrected path: relative to Jenkins workspace root
         dest: "{{ app_dir }}/Dockerfile"
         owner: "{{ app_user }}"
         group: "{{ app_user }}"
         mode: '0644'
 
     - name: Copy .dockerignore
-      ansible.builtin.copy: # Use fully qualified collection name for copy
-        src: "{{ playbook_dir }}/../../.dockerignore"
+      ansible.builtin.copy:
+        src: ".dockerignore" # Corrected path: relative to Jenkins workspace root
         dest: "{{ app_dir }}/.dockerignore"
         owner: "{{ app_user }}"
         group: "{{ app_user }}"
@@ -114,7 +112,7 @@
       community.docker.docker_image:
         name: "{{ app_name }}"
         build:
-          path: "{{ app_dir }}" # Ensure this is the correct path where files are copied
+          path: "{{ app_dir }}"
           dockerfile: Dockerfile
         state: present
         source: build
