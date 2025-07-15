@@ -56,7 +56,7 @@ pipeline {
 
                             mkdir -p ansible/inventory
                             echo "[aws]" > ansible/inventory/aws.ini
-                            echo "\INSTANCE_IP ansible_user=ubuntu ansible_ssh_private_key_file=\$PEM_FILE ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible/inventory/aws.ini
+                            echo "$INSTANCE_IP ansible_user=ubuntu ansible_ssh_private_key_file=$PEM_FILE ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible/inventory/aws.ini
                         '''
                     }
                 }
