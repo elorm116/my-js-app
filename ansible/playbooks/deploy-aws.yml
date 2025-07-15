@@ -64,7 +64,7 @@
       ansible.builtin.service:
         name: ssh
         state: restarted
-      listen: "restart ssh" # Use a handler for better control if needed, or just run directly
+      # The 'listen' keyword has been removed from this task
 
     - name: Reset connection to apply new group changes
       ansible.builtin.meta: reset_connection
