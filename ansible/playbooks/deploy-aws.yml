@@ -2,7 +2,8 @@
 - name: Deploy JS App to AWS
   hosts: aws
   #become: yes#
-  remote_user: ec2-user
+  remote_user: ubuntu
+  become: true
   vars:
     app_name: simple-js-app
     app_port: 3000
@@ -11,24 +12,24 @@
     - name: Copy application files
       copy:
         src: "{{ playbook_dir }}/../../app/"
-        dest: "/home/ec2-user/{{ app_name }}/"
-        owner: ec2-user
-        group: ec2-user
+        dest: "/home/ubuntu/{{ app_name }}/"
+        owner: ubuntu
+        group: ubuntu
         mode: '0755'
 
     - name: Copy Dockerfile
       copy:
         src: "{{ playbook_dir }}/../../Dockerfile"
-        dest: "/home/ec2-user/Dockerfile"
-        owner: ec2-user
-        group: ec2-user
+        dest: "/home/ubuntu/Dockerfile"
+        owner: ubuntu
+        group: ubuntu
         mode: '0644'
 
     - name: Build Docker image
       docker_image:
         name: "{{ app_name }}"
         build:
-          path: "/home/ec2-user"
+          path: "/home/ubuntu"
           dockerfile: Dockerfile
         state: present
         source: build
