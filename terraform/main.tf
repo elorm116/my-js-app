@@ -72,7 +72,7 @@ resource "aws_instance" "app_server" {
     apt install -y docker
     systemctl start docker
     systemctl enable docker
-    usermod -aG docker ec2-user
+    usermod -aG docker ubuntu
   EOF
 
   tags = {
