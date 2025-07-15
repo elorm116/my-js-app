@@ -45,27 +45,29 @@ pipeline {
         }
 
         stage('Generate Ansible Inventory') {
-    steps {
-        withCredentials([file(credentialsId: 'aws-ssh-key', variable: 'PEM_FILE')]) {
-            script {
-                sh '''
-                    INSTANCE_IP=$(cd terraform && terraform output -raw instance_public_ip)
+            steps {
+                withCredentials([file(credentialsId: 'aws-ssh-key', variable: 'PEM_FILE')]) {
+                    script {
+                        sh '''
+                            echo "Using PEM file at: ${PEM_FILE}"
+                            chmod 400 ${PEM_FILE}
+                            INSTANCE_IP=$(cd terraform && terraform output -raw instance_public_ip)
 
-                    mkdir -p ansible/inventory
-                    echo "[aws]" > ansible/inventory/aws.ini
-                    echo "$INSTANCE_IP ansible_user=ubuntu ansible_ssh_private_key_file=${PEM_FILE} ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible/inventory/aws.ini
-                '''
+                            mkdir -p ansible/inventory
+                            echo "[aws]" > ansible/inventory/aws.ini
+                            echo "$INSTANCE_IP ansible_user=ubuntu ansible_ssh_private_key_file=${PEM_FILE} ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible/inventory/aws.ini
+                        '''
+                    }
+                }
             }
         }
-    }
-}
-
 
         stage('Deploy to AWS') {
             steps {
                 withCredentials([file(credentialsId: 'aws-ssh-key', variable: 'PEM_FILE')]) {
                     script {
                         sh '''
+                            chmod 400 ${PEM_FILE}
                             sleep 60
                             ansible-playbook -i ansible/inventory/aws.ini ansible/playbooks/deploy-aws.yml
 
