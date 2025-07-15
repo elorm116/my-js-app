@@ -48,12 +48,9 @@ pipeline {
                         INSTANCE_IP=$(terraform output -raw instance_public_ip)
 
                         # Ensure ansible/inventory directory exists
-                        mkdir -p ../ansible/inventory
-
                         mkdir -p ansible/inventory
                         echo "[aws]" > ansible/inventory/aws.ini
 
-                        # echo "[aws]" > ../ansible/inventory/aws.ini 
                         echo "$INSTANCE_IP ansible_user=ubuntu ansible_ssh_private_key_file=/home/mali/Desktop/DevOpsLearning/DevOps.pem ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible/inventory/aws.ini
                     '''
                 }
