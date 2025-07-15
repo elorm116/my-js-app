@@ -2,9 +2,9 @@ pipeline {
     agent any
     
     environment {
-        AWS_ACCESS_KEY_ID     = credentials('aws-access-key')
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
-        AWS_DEFAULT_REGION    = 'us-east-1' // or your preferred region
+        AWS_REGION = 'us-east-1'
+        APP_NAME = 'simple-js-app'
+        KEY_NAME = 'your-aws-key-pair'
     }
     
     stages {
