@@ -8,6 +8,7 @@ variable "instance_type" {
 variable "key_name" {
   description = "AWS key pair name"
   type        = string
+  default = "DevOps"  # Replace with your actual key pair name
 }
 
 variable "app_name" {

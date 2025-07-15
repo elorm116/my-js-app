@@ -1,100 +1,75 @@
 ---
 - name: Deploy JS App to AWS
   hosts: aws
+  become: yes
   remote_user: ubuntu
-  become: true # This ensures tasks requiring root privileges can run
-
   vars:
     app_name: simple-js-app
     app_port: 3000
+    app_user: ubuntu
+    app_dir: "/home/{{ app_user }}/{{ app_name }}"
 
   tasks:
-    - name: Update apt cache and install necessary packages for Docker
-      ansible.builtin.apt:
+    # 🐳 Install Docker
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
         update_cache: yes
-        pkg:
-          - ca-certificates
-          - curl
-          - gnupg
-          - lsb-release
-        state: present
-        cache_valid_time: 3600 # Update cache if it's older than 1 hour
-
-    - name: Create Docker GPG directory
-      ansible.builtin.file:
-        path: /etc/apt/keyrings
-        state: directory
-        mode: '0755'
-
-    - name: Add Docker GPG apt key
-      ansible.builtin.shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-      args:
-        creates: /etc/apt/keyrings/docker.gpg # Only run if the key doesn't exist
-
-    - name: Add Docker apt repository
-      ansible.builtin.apt_repository:
-        repo: deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
-        state: present
-        filename: docker.list
-
-    - name: Install Docker Engine
-      ansible.builtin.apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-          - docker-buildx-plugin
-          - docker-compose-plugin
-        state: present
-        update_cache: yes # Update cache again after adding Docker repo
 
     - name: Ensure Docker service is running and enabled
-      ansible.builtin.service:
+      service:
         name: docker
         state: started
         enabled: yes
 
-    - name: Add ubuntu user to the docker group
-      ansible.builtin.user:
-        name: ubuntu
+    - name: Add ubuntu user to docker group
+      user:
+        name: "{{ app_user }}"
         groups: docker
         append: yes
 
-    - name: Force a restart of SSH to apply new group membership
-      ansible.builtin.service:
-        name: ssh
-        state: restarted
-      # The 'listen' keyword has been removed from this task
-
-    - name: Reset connection to apply new group changes
-      ansible.builtin.meta: reset_connection
-      when: ansible_check_mode is not defined or not ansible_check_mode
-
-    - name: Pause for a few seconds to ensure Docker is fully ready
-      ansible.builtin.pause:
-        seconds: 10
-
-    - name: Copy application files
-      copy:
-        src: "{{ playbook_dir }}/../../app/"
-        dest: "/home/ubuntu/{{ app_name }}/"
-        owner: ubuntu
-        group: ubuntu
+    - name: Ensure app directory exists
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
         mode: '0755'
 
+    - name: Sync application files (excluding node_modules)
+      synchronize:
+        src: "{{ playbook_dir }}/../../app/"
+        dest: "/home/ubuntu/simple-js-app/"
+        recursive: yes
+        delete: no
+        rsync_opts:
+          - "--exclude=node_modules"
+        ssh_args: "-i /home/mali/Desktop/DevOpsLearning/DevOps.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      delegate_to: localhost
+      become: false
+      
     - name: Copy Dockerfile
       copy:
         src: "{{ playbook_dir }}/../../Dockerfile"
-        dest: "/home/ubuntu/Dockerfile"
-        owner: ubuntu
-        group: ubuntu
+        dest: "{{ app_dir }}/Dockerfile"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+
+    - name: Copy .dockerignore
+      copy:
+        src: "{{ playbook_dir }}/../../.dockerignore"
+        dest: "{{ app_dir }}/.dockerignore"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
         mode: '0644'
 
     - name: Build Docker image
       community.docker.docker_image: # Use the fully qualified collection name
         name: "{{ app_name }}"
         build:
-          path: "/home/ubuntu"
+          path: "{{ app_dir }}"
           dockerfile: Dockerfile
         state: present
         source: build

@@ -2,10 +2,10 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-COPY simple-js-app/package*.json ./
+COPY package*.json ./
 RUN npm ci --only=production
 
-COPY app/ .
+COPY . .
 
 EXPOSE 3000
 
