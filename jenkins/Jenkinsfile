@@ -50,7 +50,7 @@ pipeline {
                     script {
                         sh '''
                             echo "🔍 Debug: Checking if PEM file exists"
-                            ls -l "\$PEM_FILE" || exit 1
+                            ls -l "$PEM_FILE" || exit 1
                             
                             INSTANCE_IP=$(cd terraform && terraform output -raw instance_public_ip)
                             
