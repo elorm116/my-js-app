@@ -53,6 +53,10 @@ pipeline {
                             ls -l "\$PEM_FILE" || exit 1
                             
                             INSTANCE_IP=$(cd terraform && terraform output -raw instance_public_ip)
+                            
+                            # Copy PEM file to a safe local location
+                            cp "$PEM_FILE" ansible/DevOps.pem
+                            chmod 400 ansible/DevOps.pem
 
                             mkdir -p ansible/inventory
                             echo "[aws]" > ansible/inventory/aws.ini
