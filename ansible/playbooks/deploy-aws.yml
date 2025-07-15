@@ -1,7 +1,7 @@
 ---
 - name: Deploy JS App to AWS
   hosts: aws
-  become: yes
+  #become: yes#
   remote_user: ec2-user
   vars:
     app_name: simple-js-app
