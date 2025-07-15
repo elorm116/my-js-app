@@ -4,7 +4,9 @@ pipeline {
     environment {
         AWS_REGION = 'us-east-1'
         APP_NAME = 'simple-js-app'
-        KEY_NAME = 'your-aws-key-pair'
+        KEY_NAME = 'DevOps'
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
     }
     
     stages {
