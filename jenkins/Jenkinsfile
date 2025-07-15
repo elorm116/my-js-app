@@ -46,9 +46,9 @@ pipeline {
                         
                         # Get instance IP and update inventory
                         INSTANCE_IP=$(terraform output -raw instance_public_ip)
-                        echo "${INSTANCE_IP} ansible_user=ec2-user" > ../ansible/inventory/aws.ini
+                        echo "${INSTANCE_IP} ansible_user=ubuntu" > ../ansible/inventory/aws.ini
                         echo "[aws]" > ../ansible/inventory/aws.ini
-                        echo "${INSTANCE_IP} ansible_user=ec2-user" >> ../ansible/inventory/aws.ini
+                        echo "${INSTANCE_IP} ansible_user=ubuntu" >> ../ansible/inventory/aws.ini
                     '''
                 }
             }
