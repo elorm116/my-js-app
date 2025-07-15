@@ -2,7 +2,7 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-COPY app/package*.json ./
+COPY simple-js-app/package*.json ./
 RUN npm ci --only=production
 
 COPY app/ .
