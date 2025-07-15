@@ -94,7 +94,7 @@
 
     - name: Copy Dockerfile
       ansible.builtin.copy:
-        src: "Dockerfile" # Corrected path: relative to Jenkins workspace root
+        src: "/var/lib/jenkins/workspace/my-js-app/Dockerfile" # Corrected path: relative to Jenkins workspace root
         dest: "{{ app_dir }}/Dockerfile"
         owner: "{{ app_user }}"
         group: "{{ app_user }}"
@@ -102,7 +102,7 @@
 
     - name: Copy .dockerignore
       ansible.builtin.copy:
-        src: ".dockerignore" # Corrected path: relative to Jenkins workspace root
+        src: "/var/lib/jenkins/workspace/my-js-app/.dockerignore" # Corrected path: relative to Jenkins workspace root
         dest: "{{ app_dir }}/.dockerignore"
         owner: "{{ app_user }}"
         group: "{{ app_user }}"
