@@ -54,13 +54,14 @@ pipeline {
                             
                             INSTANCE_IP=$(cd terraform && terraform output -raw instance_public_ip)
                             
-                            # Copy PEM file to a safe local location
+                            # Copy PEM file to a safe local location within the workspace
                             cp "$PEM_FILE" ansible/DevOps.pem
                             chmod 400 ansible/DevOps.pem
 
                             mkdir -p ansible/inventory
                             echo "[aws]" > ansible/inventory/aws.ini
-                            echo "$INSTANCE_IP ansible_user=ubuntu ansible_ssh_private_key_file=$PEM_FILE ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible/inventory/aws.ini
+                            # CORRECTED LINE: Reference the copied file, not the temporary PEM_FILE variable
+                            echo "$INSTANCE_IP ansible_user=ubuntu ansible_ssh_private_key_file=ansible/DevOps.pem ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible/inventory/aws.ini
                         '''
                     }
                 }
@@ -69,21 +70,23 @@ pipeline {
 
         stage('Deploy to AWS') {
             steps {
-                withCredentials([file(credentialsId: 'aws-ssh-key', variable: 'PEM_FILE')]) {
-                    script {
-                        sh '''
-                            chmod 400 ${PEM_FILE}
-                            sleep 60
-                            ansible-playbook -i ansible/inventory/aws.ini ansible/playbooks/deploy-aws.yml
+                // Removed withCredentials block here as the key is now in a persistent location
+                script {
+                    sh '''
+                        # The chmod is now applied to the copied file in the previous stage,
+                        # but it doesn't hurt to re-apply if necessary.
+                        # chmod 400 ansible/DevOps.pem # This line is technically redundant if done in previous stage
 
-                            INSTANCE_IP=$(cd terraform && terraform output -raw instance_public_ip)
-                            sleep 30
-                            curl -f http://${INSTANCE_IP}:3000/health || exit 1
+                        sleep 60
+                        ansible-playbook -i ansible/inventory/aws.ini ansible/playbooks/deploy-aws.yml
 
-                            echo "AWS deployment successful!"
-                            echo "App is accessible at: http://${INSTANCE_IP}:3000"
-                        '''
-                    }
+                        INSTANCE_IP=$(cd terraform && terraform output -raw instance_public_ip)
+                        sleep 30
+                        curl -f http://${INSTANCE_IP}:3000/health || exit 1
+
+                        echo "AWS deployment successful!"
+                        echo "App is accessible at: http://${INSTANCE_IP}:3000"
+                    '''
                 }
             }
         }
@@ -92,6 +95,8 @@ pipeline {
     post {
         always {
             echo 'Pipeline completed!'
+            // Clean up workspace after pipeline run, good practice for security and disk space
+            cleanWs()
         }
         failure {
             echo 'Pipeline failed!'
